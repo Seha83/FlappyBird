@@ -39,6 +39,27 @@ public class Bird : GameObject
         VelocityY = 0;
     }
 
+    /// <summary>
+    /// Menü ekranında kuşun yerinde süzülmesini sağlar.
+    /// </summary>
+    public void Hover(float totalTime)
+    {
+        Y = _startY + MathF.Sin(totalTime * 5f) * 8f;
+        VelocityY = 0;
+    }
+
+    /// <summary>
+    /// Oyun bittiğinde kuşun zemine kadar düşmesini sağlar.
+    /// </summary>
+    public void FallTo(float groundY, float deltaTime)
+    {
+        if (Y + Height < groundY)
+        {
+            Update(deltaTime);
+            Y = Math.Min(Y, groundY - Height);
+        }
+    }
+
     public override void Update(float deltaTime)
     {
         VelocityY = Math.Min(VelocityY + Gravity * deltaTime, MaxFallSpeed);
