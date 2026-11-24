@@ -2,6 +2,7 @@ using System.Diagnostics;
 using FlappyBird.Core;
 using FlappyBird.Entities;
 using FlappyBird.Rendering;
+using FlappyBird.Services;
 
 namespace FlappyBird;
 
@@ -25,14 +26,23 @@ public class GameForm : Form
     private readonly Bird _bird = new(80, GameHeight / 2f - 40);
     private readonly PipeManager _pipeManager = new(GameWidth, PlayfieldHeight);
     private readonly Ground _ground = new(PlayfieldHeight, GameWidth, GroundHeight);
+    private readonly IHighScoreRepository _highScoreRepository;
 
     private GameState _state = GameState.Menu;
     private int _score;
+    private int _highScore;
+    private bool _isNewHighScore;
     private float _totalTime;
     private float _stateTime;
 
-    public GameForm()
+    public GameForm() : this(new FileHighScoreRepository())
     {
+    }
+
+    public GameForm(IHighScoreRepository highScoreRepository)
+    {
+        _highScoreRepository = highScoreRepository;
+        _highScore = _highScoreRepository.Load();
         Text = "Flappy Bird - C# WinForms";
         ClientSize = new Size(GameWidth, GameHeight);
         FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -88,6 +98,13 @@ public class GameForm : Form
 
     private void EndGame()
     {
+        _isNewHighScore = _score > _highScore;
+        if (_isNewHighScore)
+        {
+            _highScore = _score;
+            _highScoreRepository.Save(_highScore);
+        }
+
         ChangeState(GameState.GameOver);
     }
 
@@ -219,10 +236,11 @@ public class GameForm : Form
     private void DrawScore(Graphics g) =>
         OutlinedText.DrawCentered(g, _score.ToString(), 36, GameWidth / 2f, 40, Color.White, Color.Black, 6);
 
-    private static void DrawMenu(Graphics g)
+    private void DrawMenu(Graphics g)
     {
         OutlinedText.DrawCentered(g, "FLAPPY BIRD", 34, GameWidth / 2f, 110, Color.Gold, Color.SaddleBrown, 7);
         OutlinedText.DrawCentered(g, "Başlamak için SPACE / Tıkla", 14, GameWidth / 2f, 380, Color.White, Color.Black, 4);
+        OutlinedText.DrawCentered(g, $"En İyi: {_highScore}", 16, GameWidth / 2f, 420, Color.Gold, Color.Black, 4);
     }
 
     private void DrawGameOver(Graphics g)
@@ -236,7 +254,14 @@ public class GameForm : Form
         g.DrawRectangle(border, panel.X, panel.Y, panel.Width, panel.Height);
 
         OutlinedText.DrawCentered(g, "SKOR", 14, GameWidth / 2f, panel.Y + 18, Color.OrangeRed, Color.White, 3);
-        OutlinedText.DrawCentered(g, _score.ToString(), 30, GameWidth / 2f, panel.Y + 50, Color.White, Color.Black, 5);
+        OutlinedText.DrawCentered(g, _score.ToString(), 30, GameWidth / 2f, panel.Y + 40, Color.White, Color.Black, 5);
+        OutlinedText.DrawCentered(g, "EN İYİ", 14, GameWidth / 2f, panel.Y + 85, Color.OrangeRed, Color.White, 3);
+        OutlinedText.DrawCentered(g, _highScore.ToString(), 22, GameWidth / 2f, panel.Y + 107, Color.White, Color.Black, 4);
+
+        if (_isNewHighScore)
+        {
+            OutlinedText.DrawCentered(g, "YENİ REKOR!", 12, panel.Right - 50, panel.Y + 90, Color.Red, Color.White, 3);
+        }
 
         if (_stateTime >= RestartDelay)
         {
