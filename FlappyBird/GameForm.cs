@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FlappyBird.Audio;
 using FlappyBird.Core;
 using FlappyBird.Entities;
 using FlappyBird.Rendering;
@@ -28,6 +29,7 @@ public class GameForm : Form
     private readonly Ground _ground = new(PlayfieldHeight, GameWidth, GroundHeight);
     private readonly Background _background = new(GameWidth, PlayfieldHeight);
     private readonly IHighScoreRepository _highScoreRepository;
+    private readonly ISoundService _soundService;
 
     private GameState _state = GameState.Menu;
     private int _score;
@@ -36,13 +38,14 @@ public class GameForm : Form
     private float _totalTime;
     private float _stateTime;
 
-    public GameForm() : this(new FileHighScoreRepository())
+    public GameForm() : this(new FileHighScoreRepository(), new SoundManager())
     {
     }
 
-    public GameForm(IHighScoreRepository highScoreRepository)
+    public GameForm(IHighScoreRepository highScoreRepository, ISoundService soundService)
     {
         _highScoreRepository = highScoreRepository;
+        _soundService = soundService;
         _highScore = _highScoreRepository.Load();
         Text = "Flappy Bird - C# WinForms";
         ClientSize = new Size(GameWidth, GameHeight);
@@ -95,10 +98,12 @@ public class GameForm : Form
         _score = 0;
         ChangeState(GameState.Playing);
         _bird.Flap();
+        _soundService.Play(SoundEffect.Flap);
     }
 
     private void EndGame()
     {
+        _soundService.Play(SoundEffect.Hit);
         _isNewHighScore = _score > _highScore;
         if (_isNewHighScore)
         {
@@ -121,6 +126,7 @@ public class GameForm : Form
                 break;
             case GameState.Playing:
                 _bird.Flap();
+                _soundService.Play(SoundEffect.Flap);
                 break;
             case GameState.GameOver when _stateTime >= RestartDelay:
                 _bird.Reset();
@@ -149,7 +155,13 @@ public class GameForm : Form
             case GameState.Playing:
                 _bird.Update(deltaTime);
                 ScrollWorld(deltaTime, movePipes: true);
-                _score += _pipeManager.CountNewlyPassed(_bird);
+                int passed = _pipeManager.CountNewlyPassed(_bird);
+                if (passed > 0)
+                {
+                    _score += passed;
+                    _soundService.Play(SoundEffect.Score);
+                }
+
                 if (HasCollision())
                 {
                     EndGame();
@@ -190,6 +202,10 @@ public class GameForm : Form
         {
             case Keys.Space or Keys.Up or Keys.W or Keys.Enter:
                 HandleFlapInput();
+                break;
+            case Keys.M:
+                _soundService.IsMuted = !_soundService.IsMuted;
+                Invalidate();
                 break;
             case Keys.Escape:
                 Close();
@@ -233,6 +249,11 @@ public class GameForm : Form
             case GameState.GameOver:
                 DrawGameOver(g);
                 break;
+        }
+
+        if (_soundService.IsMuted)
+        {
+            OutlinedText.DrawCentered(g, "SESSİZ (M)", 10, GameWidth - 48, 12, Color.LightCoral, Color.Black, 3);
         }
     }
 
@@ -279,6 +300,11 @@ public class GameForm : Form
         _gameTimer.Stop();
         _gameTimer.Dispose();
         _background.Dispose();
+        if (_soundService is IDisposable disposableSound)
+        {
+            disposableSound.Dispose();
+        }
+
         base.OnFormClosed(e);
     }
 }
