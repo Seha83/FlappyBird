@@ -96,9 +96,16 @@ public class GameForm : Form
         _bird.Reset();
         _pipeManager.Reset();
         _score = 0;
+        ApplyDifficulty();
         ChangeState(GameState.Playing);
         _bird.Flap();
         _soundService.Play(SoundEffect.Flap);
+    }
+
+    private void ApplyDifficulty()
+    {
+        _pipeManager.Speed = DifficultyScaler.CalculateSpeed(_score);
+        _pipeManager.GapSize = DifficultyScaler.CalculateGapSize(_score);
     }
 
     private void EndGame()
@@ -172,6 +179,7 @@ public class GameForm : Form
                 if (passed > 0)
                 {
                     _score += passed;
+                    ApplyDifficulty();
                     _soundService.Play(SoundEffect.Score);
                 }
 
@@ -285,8 +293,12 @@ public class GameForm : Form
         }
     }
 
-    private void DrawScore(Graphics g) =>
+    private void DrawScore(Graphics g)
+    {
         OutlinedText.DrawCentered(g, _score.ToString(), 36, GameWidth / 2f, 40, Color.White, Color.Black, 6);
+        int level = DifficultyScaler.GetDifficultyLevel(_score);
+        OutlinedText.DrawCentered(g, $"Seviye {level}", 10, 44, 12, Color.Gold, Color.Black, 3);
+    }
 
     private void DrawMenu(Graphics g)
     {
