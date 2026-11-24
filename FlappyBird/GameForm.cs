@@ -318,9 +318,9 @@ public class GameForm : Form
 
     private void DrawGameOver(Graphics g)
     {
-        OutlinedText.DrawCentered(g, "OYUN BİTTİ", 32, GameWidth / 2f, 115, Color.OrangeRed, Color.White, 7);
+        OutlinedText.DrawCentered(g, "OYUN BİTTİ", 32, GameWidth / 2f, 110, Color.OrangeRed, Color.White, 7);
 
-        var panel = new RectangleF(45, 195, GameWidth - 90, 160);
+        var panel = new RectangleF(45, 190, GameWidth - 90, 175);
         using var panelBrush = new SolidBrush(Color.FromArgb(222, 216, 149));
         using var border = new Pen(Color.FromArgb(84, 56, 71), 3);
         g.FillRectangle(panelBrush, panel);
@@ -329,26 +329,26 @@ public class GameForm : Form
         // Sol taraf: Madalya
         MedalType medal = MedalCalculator.GetMedal(_score);
         float medalCenterX = panel.X + 75;
-        float medalCenterY = panel.Y + 90;
+        float medalCenterY = panel.Y + 92;
         OutlinedText.DrawCentered(g, "MADALYA", 12, medalCenterX, panel.Y + 16, Color.OrangeRed, Color.White, 3);
         MedalCalculator.DrawMedal(g, medal, medalCenterX, medalCenterY, 34f);
-        OutlinedText.DrawCentered(g, MedalCalculator.GetDisplayName(medal), 10, medalCenterX, panel.Bottom - 26, Color.White, Color.Black, 3);
+        OutlinedText.DrawCentered(g, MedalCalculator.GetDisplayName(medal), 10, medalCenterX, panel.Bottom - 30, Color.White, Color.Black, 3);
 
         // Sağ taraf: Skor ve En İyi Skor
         float scoreCenterX = panel.Right - 80;
-        OutlinedText.DrawCentered(g, "SKOR", 13, scoreCenterX, panel.Y + 16, Color.OrangeRed, Color.White, 3);
-        OutlinedText.DrawCentered(g, _score.ToString(), 26, scoreCenterX, panel.Y + 38, Color.White, Color.Black, 5);
-        OutlinedText.DrawCentered(g, "EN İYİ", 13, scoreCenterX, panel.Y + 86, Color.OrangeRed, Color.White, 3);
-        OutlinedText.DrawCentered(g, _highScore.ToString(), 22, scoreCenterX, panel.Y + 108, Color.White, Color.Black, 4);
+        OutlinedText.DrawCentered(g, "SKOR", 13, scoreCenterX, panel.Y + 14, Color.OrangeRed, Color.White, 3);
+        OutlinedText.DrawCentered(g, _score.ToString(), 26, scoreCenterX, panel.Y + 34, Color.White, Color.Black, 5);
+        OutlinedText.DrawCentered(g, "EN İYİ", 13, scoreCenterX, panel.Y + 80, Color.OrangeRed, Color.White, 3);
+        OutlinedText.DrawCentered(g, _highScore.ToString(), 22, scoreCenterX, panel.Y + 100, Color.White, Color.Black, 4);
 
         if (_isNewHighScore)
         {
-            OutlinedText.DrawCentered(g, "YENİ REKOR!", 11, scoreCenterX, panel.Bottom - 22, Color.Red, Color.White, 3);
+            OutlinedText.DrawCentered(g, "YENİ REKOR!", 11, scoreCenterX, panel.Bottom - 26, Color.Red, Color.White, 3);
         }
 
         if (_stateTime >= RestartDelay)
         {
-            OutlinedText.DrawCentered(g, "Devam için SPACE / Tıkla", 14, GameWidth / 2f, 395, Color.White, Color.Black, 4);
+            OutlinedText.DrawCentered(g, "Devam için SPACE / Tıkla", 14, GameWidth / 2f, 398, Color.White, Color.Black, 4);
         }
     }
 
@@ -365,5 +365,57 @@ public class GameForm : Form
         }
 
         base.OnFormClosed(e);
+    }
+
+    /// <summary>
+    /// Belgelendirme amacıyla oyunun ana ekranlarını (Menü, Oyun İçi, Oyun Bitti)
+    /// gerçek çizim hattıyla (OnPaint) bitmap üzerine işleyip PNG olarak kaydeder.
+    /// </summary>
+    public void CaptureDemoScreenshots(string outputDirectory)
+    {
+        _gameTimer.Stop();
+        _soundService.IsMuted = true;
+        Directory.CreateDirectory(outputDirectory);
+
+        // 1) Menü ekranı
+        _highScore = Math.Max(_highScore, 28);
+        ChangeState(GameState.Menu);
+        UpdateGame(0.25f);
+        SaveCurrentScene(Path.Combine(outputDirectory, "menu.png"));
+
+        // 2) Oyun içi ekranı (borular ilerlemiş, kuş kanat çırpıyor, skor 18)
+        StartNewGame();
+        _score = 18;
+        ApplyDifficulty();
+        for (int i = 0; i < 65; i++)
+        {
+            _pipeManager.Update(0.03f);
+            _ground.Update(0.03f);
+            _background.Update(0.03f, _pipeManager.Speed);
+        }
+
+        _bird.Flap();
+        _bird.Update(0.08f);
+        SaveCurrentScene(Path.Combine(outputDirectory, "gameplay.png"));
+
+        // 3) Oyun Bitti + Altın Madalya ekranı
+        _score = 28;
+        _highScore = 28;
+        _isNewHighScore = true;
+        ChangeState(GameState.GameOver);
+        _stateTime = RestartDelay + 0.1f;
+        SaveCurrentScene(Path.Combine(outputDirectory, "gameover.png"));
+    }
+
+    private void SaveCurrentScene(string filePath)
+    {
+        bool prevMuted = _soundService.IsMuted;
+        _soundService.IsMuted = false;
+        using var bmp = new Bitmap(GameWidth, GameHeight);
+        using var g = Graphics.FromImage(bmp);
+        using var paintArgs = new PaintEventArgs(g, new Rectangle(0, 0, GameWidth, GameHeight));
+        OnPaint(paintArgs);
+        bmp.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
+        _soundService.IsMuted = prevMuted;
     }
 }
