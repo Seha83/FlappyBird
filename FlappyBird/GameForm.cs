@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FlappyBird.Entities;
 
 namespace FlappyBird;
 
@@ -13,6 +14,8 @@ public class GameForm : Form
     private readonly System.Windows.Forms.Timer _gameTimer;
     private readonly Stopwatch _stopwatch = new();
     private long _lastTicks;
+
+    private readonly Bird _bird = new(80, GameHeight / 2f - 12);
 
     public GameForm()
     {
@@ -54,6 +57,31 @@ public class GameForm : Form
 
     private void UpdateGame(float deltaTime)
     {
+        _bird.Update(deltaTime);
+
+        // Geçici: kuş ekranın altına düşerse başa dön
+        if (_bird.Y > GameHeight)
+        {
+            _bird.Reset();
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.KeyCode is Keys.Space or Keys.Up or Keys.W)
+        {
+            _bird.Flap();
+        }
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button == MouseButtons.Left)
+        {
+            _bird.Flap();
+        }
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -62,6 +90,8 @@ public class GameForm : Form
         Graphics g = e.Graphics;
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.Clear(Color.SkyBlue);
+
+        _bird.Draw(g);
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
