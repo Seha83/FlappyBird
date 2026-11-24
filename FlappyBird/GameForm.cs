@@ -15,7 +15,11 @@ public class GameForm : Form
     private readonly Stopwatch _stopwatch = new();
     private long _lastTicks;
 
+    public const int GroundHeight = 80;
+    public const int PlayfieldHeight = GameHeight - GroundHeight;
+
     private readonly Bird _bird = new(80, GameHeight / 2f - 12);
+    private readonly PipeManager _pipeManager = new(GameWidth, PlayfieldHeight);
 
     public GameForm()
     {
@@ -58,11 +62,13 @@ public class GameForm : Form
     private void UpdateGame(float deltaTime)
     {
         _bird.Update(deltaTime);
+        _pipeManager.Update(deltaTime);
 
         // Geçici: kuş ekranın altına düşerse başa dön
         if (_bird.Y > GameHeight)
         {
             _bird.Reset();
+            _pipeManager.Reset();
         }
     }
 
@@ -91,6 +97,7 @@ public class GameForm : Form
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.Clear(Color.SkyBlue);
 
+        _pipeManager.Draw(g);
         _bird.Draw(g);
     }
 
