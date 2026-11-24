@@ -26,6 +26,7 @@ public class GameForm : Form
     private readonly Bird _bird = new(80, GameHeight / 2f - 40);
     private readonly PipeManager _pipeManager = new(GameWidth, PlayfieldHeight);
     private readonly Ground _ground = new(PlayfieldHeight, GameWidth, GroundHeight);
+    private readonly Background _background = new(GameWidth, PlayfieldHeight);
     private readonly IHighScoreRepository _highScoreRepository;
 
     private GameState _state = GameState.Menu;
@@ -171,6 +172,7 @@ public class GameForm : Form
 
         _ground.Speed = _pipeManager.Speed;
         _ground.Update(deltaTime);
+        _background.Update(deltaTime, _pipeManager.Speed);
     }
 
     /// <summary>Kuşun zemine veya bir boruya çarpıp çarpmadığını döndürür.</summary>
@@ -215,6 +217,7 @@ public class GameForm : Form
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         g.Clear(Color.SkyBlue);
 
+        _background.Draw(g);
         _pipeManager.Draw(g);
         _ground.Draw(g);
         _bird.Draw(g);
@@ -275,6 +278,7 @@ public class GameForm : Form
     {
         _gameTimer.Stop();
         _gameTimer.Dispose();
+        _background.Dispose();
         base.OnFormClosed(e);
     }
 }
