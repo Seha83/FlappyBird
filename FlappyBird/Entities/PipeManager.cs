@@ -29,6 +29,9 @@ public class PipeManager
 
     public void Reset() => _pipes.Clear();
 
+    /// <summary>Kuşun herhangi bir boruya çarpıp çarpmadığını kontrol eder.</summary>
+    public bool CheckCollision(Bird bird) => _pipes.Any(p => p.CollidesWith(bird.Bounds));
+
     public void Update(float deltaTime)
     {
         // Son boru yeterince ilerlediyse yeni boru üret

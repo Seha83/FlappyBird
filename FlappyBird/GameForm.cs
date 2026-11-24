@@ -20,6 +20,7 @@ public class GameForm : Form
 
     private readonly Bird _bird = new(80, GameHeight / 2f - 12);
     private readonly PipeManager _pipeManager = new(GameWidth, PlayfieldHeight);
+    private readonly Ground _ground = new(PlayfieldHeight, GameWidth, GroundHeight);
 
     public GameForm()
     {
@@ -63,14 +64,20 @@ public class GameForm : Form
     {
         _bird.Update(deltaTime);
         _pipeManager.Update(deltaTime);
+        _ground.Speed = _pipeManager.Speed;
+        _ground.Update(deltaTime);
 
-        // Geçici: kuş ekranın altına düşerse başa dön
-        if (_bird.Y > GameHeight)
+        // Geçici: çarpışmada oyunu sıfırla (durum makinesi sonraki adımda eklenecek)
+        if (HasCollision())
         {
             _bird.Reset();
             _pipeManager.Reset();
         }
     }
+
+    /// <summary>Kuşun zemine veya bir boruya çarpıp çarpmadığını döndürür.</summary>
+    private bool HasCollision() =>
+        _bird.Bounds.Bottom >= _ground.Y || _pipeManager.CheckCollision(_bird);
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -98,6 +105,7 @@ public class GameForm : Form
         g.Clear(Color.SkyBlue);
 
         _pipeManager.Draw(g);
+        _ground.Draw(g);
         _bird.Draw(g);
     }
 
