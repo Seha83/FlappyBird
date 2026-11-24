@@ -32,6 +32,24 @@ public class PipeManager
     /// <summary>Kuşun herhangi bir boruya çarpıp çarpmadığını kontrol eder.</summary>
     public bool CheckCollision(Bird bird) => _pipes.Any(p => p.CollidesWith(bird.Bounds));
 
+    /// <summary>
+    /// Kuşun yeni geçtiği boruları işaretler ve sayısını döndürür.
+    /// </summary>
+    public int CountNewlyPassed(Bird bird)
+    {
+        int count = 0;
+        foreach (Pipe pipe in _pipes)
+        {
+            if (!pipe.Passed && pipe.X + pipe.Width < bird.X)
+            {
+                pipe.Passed = true;
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     public void Update(float deltaTime)
     {
         // Son boru yeterince ilerlediyse yeni boru üret

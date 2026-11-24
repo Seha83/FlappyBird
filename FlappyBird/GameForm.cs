@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using FlappyBird.Entities;
+using FlappyBird.Rendering;
 
 namespace FlappyBird;
 
@@ -21,6 +22,8 @@ public class GameForm : Form
     private readonly Bird _bird = new(80, GameHeight / 2f - 12);
     private readonly PipeManager _pipeManager = new(GameWidth, PlayfieldHeight);
     private readonly Ground _ground = new(PlayfieldHeight, GameWidth, GroundHeight);
+
+    private int _score;
 
     public GameForm()
     {
@@ -67,11 +70,14 @@ public class GameForm : Form
         _ground.Speed = _pipeManager.Speed;
         _ground.Update(deltaTime);
 
+        _score += _pipeManager.CountNewlyPassed(_bird);
+
         // Geçici: çarpışmada oyunu sıfırla (durum makinesi sonraki adımda eklenecek)
         if (HasCollision())
         {
             _bird.Reset();
             _pipeManager.Reset();
+            _score = 0;
         }
     }
 
@@ -107,6 +113,8 @@ public class GameForm : Form
         _pipeManager.Draw(g);
         _ground.Draw(g);
         _bird.Draw(g);
+
+        OutlinedText.DrawCentered(g, _score.ToString(), 36, GameWidth / 2f, 40, Color.White, Color.Black, 6);
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
