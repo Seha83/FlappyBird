@@ -103,7 +103,8 @@ public class GameForm : Form
 
     private void EndGame()
     {
-        _soundService.Play(SoundEffect.Hit);
+        MedalType medal = MedalCalculator.GetMedal(_score);
+        _soundService.Play(medal != MedalType.None ? SoundEffect.Medal : SoundEffect.Hit);
         _isNewHighScore = _score > _highScore;
         if (_isNewHighScore)
         {
@@ -112,6 +113,18 @@ public class GameForm : Form
         }
 
         ChangeState(GameState.GameOver);
+    }
+
+    private void TogglePause()
+    {
+        if (_state == GameState.Playing)
+        {
+            ChangeState(GameState.Paused);
+        }
+        else if (_state == GameState.Paused)
+        {
+            ChangeState(GameState.Playing);
+        }
     }
 
     /// <summary>
@@ -201,7 +214,18 @@ public class GameForm : Form
         switch (e.KeyCode)
         {
             case Keys.Space or Keys.Up or Keys.W or Keys.Enter:
-                HandleFlapInput();
+                if (_state == GameState.Paused)
+                {
+                    TogglePause();
+                }
+                else
+                {
+                    HandleFlapInput();
+                }
+
+                break;
+            case Keys.P:
+                TogglePause();
                 break;
             case Keys.M:
                 _soundService.IsMuted = !_soundService.IsMuted;
@@ -246,6 +270,10 @@ public class GameForm : Form
             case GameState.Playing:
                 DrawScore(g);
                 break;
+            case GameState.Paused:
+                DrawScore(g);
+                DrawPaused(g);
+                break;
             case GameState.GameOver:
                 DrawGameOver(g);
                 break;
@@ -264,32 +292,51 @@ public class GameForm : Form
     {
         OutlinedText.DrawCentered(g, "FLAPPY BIRD", 34, GameWidth / 2f, 110, Color.Gold, Color.SaddleBrown, 7);
         OutlinedText.DrawCentered(g, "Başlamak için SPACE / Tıkla", 14, GameWidth / 2f, 380, Color.White, Color.Black, 4);
-        OutlinedText.DrawCentered(g, $"En İyi: {_highScore}", 16, GameWidth / 2f, 420, Color.Gold, Color.Black, 4);
+        OutlinedText.DrawCentered(g, $"En İyi: {_highScore}", 16, GameWidth / 2f, 415, Color.Gold, Color.Black, 4);
+        OutlinedText.DrawCentered(g, "P: Duraklat   |   M: Ses Aç/Kapat", 11, GameWidth / 2f, 455, Color.LightYellow, Color.Black, 3);
+    }
+
+    private static void DrawPaused(Graphics g)
+    {
+        using var overlay = new SolidBrush(Color.FromArgb(120, 0, 0, 0));
+        g.FillRectangle(overlay, 0, 0, GameWidth, GameHeight);
+        OutlinedText.DrawCentered(g, "DURAKLATILDI", 28, GameWidth / 2f, 220, Color.Gold, Color.Black, 6);
+        OutlinedText.DrawCentered(g, "Devam etmek için P veya SPACE", 13, GameWidth / 2f, 275, Color.White, Color.Black, 4);
     }
 
     private void DrawGameOver(Graphics g)
     {
-        OutlinedText.DrawCentered(g, "OYUN BİTTİ", 32, GameWidth / 2f, 120, Color.OrangeRed, Color.White, 7);
+        OutlinedText.DrawCentered(g, "OYUN BİTTİ", 32, GameWidth / 2f, 115, Color.OrangeRed, Color.White, 7);
 
-        var panel = new RectangleF(60, 200, GameWidth - 120, 150);
+        var panel = new RectangleF(45, 195, GameWidth - 90, 160);
         using var panelBrush = new SolidBrush(Color.FromArgb(222, 216, 149));
         using var border = new Pen(Color.FromArgb(84, 56, 71), 3);
         g.FillRectangle(panelBrush, panel);
         g.DrawRectangle(border, panel.X, panel.Y, panel.Width, panel.Height);
 
-        OutlinedText.DrawCentered(g, "SKOR", 14, GameWidth / 2f, panel.Y + 18, Color.OrangeRed, Color.White, 3);
-        OutlinedText.DrawCentered(g, _score.ToString(), 30, GameWidth / 2f, panel.Y + 40, Color.White, Color.Black, 5);
-        OutlinedText.DrawCentered(g, "EN İYİ", 14, GameWidth / 2f, panel.Y + 85, Color.OrangeRed, Color.White, 3);
-        OutlinedText.DrawCentered(g, _highScore.ToString(), 22, GameWidth / 2f, panel.Y + 107, Color.White, Color.Black, 4);
+        // Sol taraf: Madalya
+        MedalType medal = MedalCalculator.GetMedal(_score);
+        float medalCenterX = panel.X + 75;
+        float medalCenterY = panel.Y + 90;
+        OutlinedText.DrawCentered(g, "MADALYA", 12, medalCenterX, panel.Y + 16, Color.OrangeRed, Color.White, 3);
+        MedalCalculator.DrawMedal(g, medal, medalCenterX, medalCenterY, 34f);
+        OutlinedText.DrawCentered(g, MedalCalculator.GetDisplayName(medal), 10, medalCenterX, panel.Bottom - 26, Color.White, Color.Black, 3);
+
+        // Sağ taraf: Skor ve En İyi Skor
+        float scoreCenterX = panel.Right - 80;
+        OutlinedText.DrawCentered(g, "SKOR", 13, scoreCenterX, panel.Y + 16, Color.OrangeRed, Color.White, 3);
+        OutlinedText.DrawCentered(g, _score.ToString(), 26, scoreCenterX, panel.Y + 38, Color.White, Color.Black, 5);
+        OutlinedText.DrawCentered(g, "EN İYİ", 13, scoreCenterX, panel.Y + 86, Color.OrangeRed, Color.White, 3);
+        OutlinedText.DrawCentered(g, _highScore.ToString(), 22, scoreCenterX, panel.Y + 108, Color.White, Color.Black, 4);
 
         if (_isNewHighScore)
         {
-            OutlinedText.DrawCentered(g, "YENİ REKOR!", 12, panel.Right - 50, panel.Y + 90, Color.Red, Color.White, 3);
+            OutlinedText.DrawCentered(g, "YENİ REKOR!", 11, scoreCenterX, panel.Bottom - 22, Color.Red, Color.White, 3);
         }
 
         if (_stateTime >= RestartDelay)
         {
-            OutlinedText.DrawCentered(g, "Devam için SPACE / Tıkla", 14, GameWidth / 2f, 400, Color.White, Color.Black, 4);
+            OutlinedText.DrawCentered(g, "Devam için SPACE / Tıkla", 14, GameWidth / 2f, 395, Color.White, Color.Black, 4);
         }
     }
 
